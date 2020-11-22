@@ -1,0 +1,62 @@
+import visualizer.transforms.transforms
+import visualizer.trainer.trainer
+import visualizer.train_manager.train_model
+import visualizer.architectures.unet_pruned
+import visualizer.datasets.brats_dataset
+import visualizer.data_loader.data_loader
+import visualizer.utils.preprocessing
+
+INPUT_HEIGHT = 240
+INPUT_WIDTH = 240
+NUM_CLASSES = 4
+
+# Data transformation configuration
+# TRANSFORM_CONFIGURATION = {
+# '0': {'transform_type': 'Resize', 'params': {'output_size': [%INPUT_HEIGHT, %INPUT_WIDTH]}},
+# '1': {'transform_type': 'NormalizeImage', 'params': {'mean' :128.0, 'stddev': 128.0}}
+# }
+TRANSFORM_CONFIGURATION = {}
+configure_transforms.config = %TRANSFORM_CONFIGURATION
+
+BraTSDataset.root_dir = '/scratch/dpadma2s/neuroscience_lab_data/extracted_images/train/'
+BraTSDataset.transform = @configure_transforms()
+BraTSDataset.input_height = %INPUT_HEIGHT
+BraTSDataset.input_width = %INPUT_WIDTH
+BRATS_DATASET = @BraTSDataset()
+
+# Data loader configuration
+get_train_valid_test_loader.batch_size = 4
+get_train_valid_test_loader.random_seed = 39248
+get_train_valid_test_loader.valid_size = 0.3
+get_train_valid_test_loader.test_size = 0.0
+get_train_valid_test_loader.num_workers = 0
+get_train_valid_test_loader.dataset = %BRATS_DATASET
+DATA_LOADERS = @get_train_valid_test_loader()
+
+# Architecture- UNet Pruned
+Unet_pruned.num_classes = %NUM_CLASSES
+
+# Train_manager
+train_model.net = @Unet_pruned()
+train_model.input_height = %INPUT_HEIGHT
+train_model.input_width = %INPUT_WIDTH
+train_model.data_loaders = %DATA_LOADERS
+
+# Trainer
+calculate_weight.data_loaders = %DATA_LOADERS
+calculate_weight.num_classes = %NUM_CLASSES
+torch.nn.CrossEntropyLoss.weight = @calculate_weight()
+Trainer.segment_criterion = @torch.nn.CrossEntropyLoss()
+
+# focal_loss.alpha = 5
+# Trainer.segment_criterion = @focal_loss
+
+Trainer.lr_step_size = 5
+Trainer.lr = 1e-03
+Trainer.patience = 20
+Trainer.num_epochs = 100
+
+Trainer.optimizer_class = @torch.optim.Adam
+Trainer.weight_decay = 0
+Trainer.input_width = %INPUT_WIDTH
+Trainer.input_height = %INPUT_HEIGHT
