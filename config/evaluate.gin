@@ -51,5 +51,7 @@ evaluate_model.data_loaders = %DATA_LOADERS
 
 calculate_weight.data_loaders = %DATA_LOADERS
 calculate_weight.num_classes = %NUM_CLASSES
+calculate_weight.loader_idx = 2
+calculate_weight.report_path = "report/"
 torch.nn.CrossEntropyLoss.weight = @calculate_weight()
 evaluate_model.criterion = @torch.nn.CrossEntropyLoss()

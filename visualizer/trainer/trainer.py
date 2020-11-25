@@ -2,7 +2,9 @@ import os
 import timeit
 import logging
 import gin
+import typing
 from sys import maxsize
+import matplotlib.pyplot as plt
 
 import torch
 from torch.utils.tensorboard import SummaryWriter
@@ -93,6 +95,7 @@ class Trainer:
         best_validation_loss = maxsize
 
         for epoch in range(self.num_epochs):
+            self.current_epoch = epoch + 1
             sample_size = 10
             self.net.train(True)
 
@@ -187,6 +190,39 @@ class Trainer:
 
         self.tensorboard_writer.close()
 
+    def write_validation_images(self,
+                                outputs_segmentation: torch.Tensor,
+                                target: torch.Tensor,
+                                ) -> typing.List:
+        """
+        Method to generate a list of figure for visualizing in the tensorboard.
+
+        Args:
+            outputs_segmentation: torch.Tensor
+                Output prediction tensors for a validation data batch
+            target:
+                Target tensors for a validation data batch
+        Returns:
+            list_of_figs: List
+                List of matplotlib figs with target and model predictions alongside
+
+        """
+
+        list_of_figs = []
+        predictions = torch.argmax(outputs_segmentation, dim=1)
+
+        for i in range(outputs_segmentation.shape[0]):
+            prediction_per_batch = predictions[i]
+            target_per_batch = target[i]
+            fig = plt.figure(figsize=(32, 32))
+            plt.subplot(121)
+            plt.imshow(torch.squeeze(prediction_per_batch).cpu().detach().numpy())
+            plt.subplot(122)
+            plt.imshow(torch.squeeze(target_per_batch).cpu().detach().numpy())
+            list_of_figs.append(fig)
+
+        return list_of_figs
+
     def validation(self):
         LOGGER.info("Validation Module")
         valid_len = len(self.valid_loader.batch_sampler)
@@ -208,6 +244,16 @@ class Trainer:
             loss = self.criterion_segmentation(outputs_segmentation, target)
 
             av_loss += loss.item() / self.loss_scale
+
+            if batch == 0:
+                list_of_figs = self.write_validation_images(
+                    outputs_segmentation, target
+                )
+                self.tensorboard_writer.add_figure(
+                    "Predictions vs target",
+                    list_of_figs,
+                    self.current_epoch * (batch + 1),
+                )
 
         av_valid_loss = av_loss / valid_len
         return av_valid_loss

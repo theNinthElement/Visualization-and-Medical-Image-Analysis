@@ -15,7 +15,7 @@ dependencies = [
     "torch",
     "torchvision",
     "opencv-python>=4.1.1.26,<5.0",
-    "tensorboard==2.0.0",
+    "tensorboard==2.3.0",
     "scikit-learn>=0.21.0,<1.0",
     "scikit-image",
     "git-python>=1.0.3",

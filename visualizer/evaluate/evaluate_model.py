@@ -81,14 +81,15 @@ def evaluate_model(
     LOGGER.info("Ready to start evaluating!")
 
     df_columns = ["loss", "precision", "recall", "f1-score"]
-    df_detailed = pd.DataFrame(columns=df_columns)
+    df_micro = pd.DataFrame(columns=df_columns)
+    df_macro = pd.DataFrame(columns=df_columns)
     confusion_matrix_array = np.zeros((num_classes, num_classes))
     precision_per_class = np.zeros((num_classes))
     recall_per_class = np.zeros((num_classes))
     f1score_per_class = np.zeros((num_classes))
 
     for data in test_loader:
-        LOGGER.info("Predicting on image: %s", str(len(df_detailed) + 1))
+        LOGGER.info("Predicting on image: %s", str(len(df_micro) + 1))
 
         images = data["image"]
         labels_segmentation = data["label"]
@@ -100,7 +101,7 @@ def evaluate_model(
 
         outputs_segmentation = outputs_segmentation.argmax(axis=1)
 
-        if visualize and len(df_detailed) % 20 == 0:
+        if visualize and len(df_micro) % 20 == 0:
             plt.subplot(121)
             plt.imshow(torch.squeeze(outputs_segmentation).detach().numpy())
             plt.title("Prediction")
@@ -108,11 +109,11 @@ def evaluate_model(
             plt.imshow(torch.squeeze(labels_segmentation).detach().numpy())
             plt.title("Target label")
             plt.suptitle("Visualizer result")
-            LOGGER.info("Saving image number: %s", str(len(df_detailed) + 1))
+            LOGGER.info("Saving image number: %s", str(len(df_micro) + 1))
             plt.savefig(
                 report_output_path
                 + "/output_images/"
-                + str(len(df_detailed) + 1)
+                + str(len(df_micro) + 1)
                 + ".jpg"
             )
             # plt.show()
@@ -121,13 +122,25 @@ def evaluate_model(
         labels_seg_flatten = torch.flatten(labels_segmentation, start_dim=1)
 
         precision, recall, f1score = calculate_metrics(
-            target=labels_seg_flatten.detach().numpy(),
-            output=outputs_seg_flatten.detach().numpy(),
-            include_bg_class=False,
-            average="macro",
-            num_classes=num_classes,
+            labels_seg_flatten.detach().numpy(),
+            outputs_seg_flatten.detach().numpy(),
+            False,
+            "micro",
         )
-        df_detailed.loc[len(df_detailed)] = [
+        df_micro.loc[len(df_micro)] = [
+            loss.detach().numpy(),
+            precision,
+            recall,
+            f1score,
+        ]
+
+        precision, recall, f1score = calculate_metrics(
+            labels_seg_flatten.detach().numpy(),
+            outputs_seg_flatten.detach().numpy(),
+            False,
+            "macro",
+        )
+        df_macro.loc[len(df_macro)] = [
             loss.detach().numpy(),
             precision,
             recall,
@@ -135,31 +148,32 @@ def evaluate_model(
         ]
 
         image_precision, image_recall, image_f1score = calculate_metrics(
-            target=labels_seg_flatten.detach().numpy(),
-            output=outputs_seg_flatten.detach().numpy(),
-            include_bg_class=True,
-            num_classes=num_classes,
+            labels_seg_flatten.detach().numpy(),
+            outputs_seg_flatten.detach().numpy(),
+            True,
         )
         precision_per_class = precision_per_class + image_precision
         recall_per_class = recall_per_class + image_recall
         f1score_per_class = f1score_per_class + image_f1score
 
         confusion_matrix_array = confusion_matrix_array + get_confusion_matrix(
-            labels_seg_flatten.detach().numpy(), outputs_seg_flatten.detach().numpy(), num_classes,
+            labels_seg_flatten.detach().numpy(), outputs_seg_flatten.detach().numpy()
         )
 
-    df_detailed.loc["mean"] = df_detailed.mean()
+    df_micro.loc["mean"] = df_micro.mean()
+    df_macro.loc["mean"] = df_macro.mean()
     df_normalized_confusion_matrix = pd.DataFrame(
-        confusion_matrix_array / len(df_detailed)
+        confusion_matrix_array / len(df_micro)
     )
-    df_precision_per_class = pd.DataFrame(precision_per_class / len(df_detailed))
-    df_recall_per_class = pd.DataFrame(recall_per_class / len(df_detailed))
-    df_f1score_per_class = pd.DataFrame(f1score_per_class / len(df_detailed))
+    df_precision_per_class = pd.DataFrame(precision_per_class / len(df_micro))
+    df_recall_per_class = pd.DataFrame(recall_per_class / len(df_micro))
+    df_f1score_per_class = pd.DataFrame(f1score_per_class / len(df_micro))
 
     excel_writer = pd.ExcelWriter(
         os.path.join(report_output_path, "report.xlsx"), engine="xlsxwriter"
     )
-    df_detailed.to_excel(excel_writer, sheet_name="detailed")
+    df_micro.to_excel(excel_writer, sheet_name="micro")
+    df_macro.to_excel(excel_writer, sheet_name="macro")
     df_normalized_confusion_matrix.to_excel(
         excel_writer, sheet_name="normalized_confusion_matrix"
     )
