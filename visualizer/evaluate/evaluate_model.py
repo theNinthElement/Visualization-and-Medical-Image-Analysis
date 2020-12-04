@@ -121,30 +121,38 @@ def evaluate_model(
         outputs_seg_flatten = torch.flatten(outputs_segmentation, start_dim=1)
         labels_seg_flatten = torch.flatten(labels_segmentation, start_dim=1)
 
-        precision, recall, f1score = calculate_metrics(
+        precision_micro, recall_micro, f1score_micro = calculate_metrics(
             labels_seg_flatten.detach().numpy(),
             outputs_seg_flatten.detach().numpy(),
             False,
             "micro",
         )
-        df_micro.loc[len(df_micro)] = [
-            loss.detach().numpy(),
-            precision,
-            recall,
-            f1score,
-        ]
 
-        precision, recall, f1score = calculate_metrics(
+        if precision_micro == recall_micro == f1score_micro == 0:
+            continue
+
+        precision_macro, recall_macro, f1score_macro = calculate_metrics(
             labels_seg_flatten.detach().numpy(),
             outputs_seg_flatten.detach().numpy(),
             False,
             "macro",
         )
+
+        if precision_macro == recall_macro == f1score_macro == 0:
+            continue
+
+        df_micro.loc[len(df_micro)] = [
+            loss.detach().numpy(),
+            precision_micro,
+            recall_micro,
+            f1score_micro,
+        ]
+
         df_macro.loc[len(df_macro)] = [
             loss.detach().numpy(),
-            precision,
-            recall,
-            f1score,
+            precision_macro,
+            recall_macro,
+            f1score_macro,
         ]
 
         image_precision, image_recall, image_f1score = calculate_metrics(

@@ -53,12 +53,12 @@ Trainer.segment_criterion = @torch.nn.CrossEntropyLoss()
 # focal_loss.alpha = 5
 # Trainer.segment_criterion = @focal_loss
 
-Trainer.lr_step_size = 3
+Trainer.lr_step_size = 5
 Trainer.lr = 1e-03
 Trainer.patience = 5
 Trainer.num_epochs = 100
 
 Trainer.optimizer_class = @torch.optim.Adam
-Trainer.weight_decay = 0
+Trainer.weight_decay = 0.0001
 Trainer.input_width = %INPUT_WIDTH
 Trainer.input_height = %INPUT_HEIGHT

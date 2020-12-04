@@ -69,8 +69,9 @@ class NormalizeImage(object):
 
     def normalize(self, image: np.ndarray) -> np.ndarray:
         # normalize data
-        image = (image / image.max()) * 255
-        image = (image - self.mean) / self.stddev
+        for i in range(image.shape[2]):
+            if  image[:,:,i].max() > 0:
+                image[:,:,i] = (image[:,:,i] / image[:,:,i].max())
         return image
 
     def __call__(self, sample: typing.Dict) -> typing.Dict:

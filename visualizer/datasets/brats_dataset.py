@@ -90,9 +90,8 @@ class BraTSDataset(Dataset):
             if "seg.npy" in i:
                 seg = np.load(i)
 
-        image = np.array([t1, t1ce, t2, flair])
+        image = np.array([flair, t1, t1ce, t2])
         label = seg
-
         image = image.transpose(1, 2, 0) # Channels/ Modalities to the last dimension
 
         return image, label
@@ -100,11 +99,6 @@ class BraTSDataset(Dataset):
 
     def __len__(self):
         return len(self.image_dir_list)
-
-    def norm(self, image):
-        image = np.squeeze(image)
-        image_nonzero = image[np.nonzero(image)]
-        return (image - image_nonzero.mean()) / image_nonzero.std()
 
     def __getitem__(self, idx: int) -> typing.Dict:
 
