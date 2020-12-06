@@ -111,17 +111,43 @@ def save_image_label(image_dir_list: typing.List,
 if __name__ == "__main__":
 
     # Define the train and test folders containing nii.gz files
-    root_dir_train = '/Users/deepan/Documents/neuroscience_lab/final_train_split/train/'
-    root_dir_test = '/Users/deepan/Documents/neuroscience_lab/final_train_split/test/'
+    root_dir_train = '/Users/deepan/Documents/neuroscience_lab/trials_final/train/'
+    root_dir_validation = '/Users/deepan/Documents/neuroscience_lab/trials_final/validation/'
+    root_dir_test = '/Users/deepan/Documents/neuroscience_lab/trials_final/test/'
 
     # Define the path to save the train and test npy files
-    images_save_path_train = '/Users/deepan/Documents/neuroscience_lab/extracted_images/train/'
-    images_save_path_test = '/Users/deepan/Documents/neuroscience_lab/extracted_images/test/'
+    images_save_path_train = '/Users/deepan/Documents/neuroscience_lab/trials_final_save/train/'
+    images_save_path_validation = '/Users/deepan/Documents/neuroscience_lab/trials_final_save/validation/'
+    images_save_path_test = '/Users/deepan/Documents/neuroscience_lab/trials_final_save/test/'
+
+    if not os.path.exists(images_save_path_train):
+        os.makedirs(images_save_path_train)
+    else:
+        shutil.rmtree(images_save_path_train)
+        os.makedirs(images_save_path_train)
+    if not os.path.exists(images_save_path_validation):
+        os.makedirs(images_save_path_validation)
+    else:
+        shutil.rmtree(images_save_path_validation)
+        os.makedirs(images_save_path_validation)
+    if not os.path.exists(images_save_path_test):
+        os.makedirs(images_save_path_test)
+    else:
+        shutil.rmtree(images_save_path_test)
+        os.makedirs(images_save_path_test)
 
     # Directory pattern for BraTS dataset
     directory_pattern = re.compile("/(BraTS19_[A-Z0-9_]+)")
 
     image_dir_list_train = get_doc_dirs_list(root_dir_train, images_save_path_train)
+    image_dir_list_validation = get_doc_dirs_list(root_dir_validation, images_save_path_validation)
     image_dir_list_test = get_doc_dirs_list(root_dir_test, images_save_path_test)
     save_image_label(image_dir_list_train, images_save_path_train)
+    save_image_label(image_dir_list_validation, images_save_path_validation)
     save_image_label(image_dir_list_test, images_save_path_test)
+
+# TODO: Clean this script and add automatic splitting to train-validation-test patient folders in the beginning
+# TODO: Look into the dataset declaration in the train_dataset, test_dataset and valid_dataset. Not a good coding practice
+# TODO: Look into PyTorch shuffle in dataloader
+# TODO: Split patient ids to train, validation and test as done in the trials_final folder and split the entire dataset in Cluster
+# TODO: Train the model for this new split in Cluster

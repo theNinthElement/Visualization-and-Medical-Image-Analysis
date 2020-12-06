@@ -64,12 +64,12 @@ def split(
 
 
 @gin.configurable
-def get_train_valid_test_loader(
-    train_dataset: torch.utils.data.Dataset,
-    valid_dataset,
-    test_dataset,
+def get_train_valid_test_loader_withsplit(
+    dataset: torch.utils.data.Dataset,
     batch_size: int = 8,
     random_seed: int = 0,
+    valid_size: float = 0.1,
+    test_size: float = 0.1,
     shuffle: bool = True,
     num_workers: int = 1,
     pin_memory: bool = True,
@@ -102,35 +102,50 @@ def get_train_valid_test_loader(
         DataLoader for each sets of data.
     """
 
+    # load dataset
+    # get train, validation and test samplers
+    train_sampler, valid_sampler, test_sampler = split(
+        dataset,
+        train=1.0 - valid_size - test_size,
+        valid=valid_size,
+        test=test_size,
+        shuffle=shuffle,
+        random_seed=random_seed,
+    )
+    LOGGER.info(
+        "Loading datasets: %d training images, %d validation images, %d test images with batch size %d",
+        len(train_sampler),
+        len(valid_sampler),
+        len(test_sampler),
+        batch_size,
+    )
 
     train_loader = torch.utils.data.DataLoader(
-        train_dataset,
+        dataset,
         batch_size=batch_size,
-        shuffle=shuffle,
+        sampler=train_sampler,
         num_workers=num_workers,
         pin_memory=pin_memory,
         collate_fn=collate_fn,
     )
 
     valid_loader = torch.utils.data.DataLoader(
-        valid_dataset,
+        dataset,
         batch_size=batch_size,
-        shuffle=shuffle,
+        sampler=valid_sampler,
         num_workers=num_workers,
         pin_memory=pin_memory,
         collate_fn=collate_fn,
     )
 
     test_loader = torch.utils.data.DataLoader(
-        test_dataset,
+        dataset,
         batch_size=batch_size,
-        shuffle=shuffle,
+        sampler=test_sampler,
         num_workers=num_workers,
         pin_memory=pin_memory,
         collate_fn=collate_fn,
     )
-    LOGGER.info(
-        "Loading datasets: %d training images, %d validation images, %d test images with batch size %d",
-        len(train_loader.dataset), len(valid_loader.dataset), len(test_loader.dataset), batch_size)
 
     return train_loader, valid_loader, test_loader
+
