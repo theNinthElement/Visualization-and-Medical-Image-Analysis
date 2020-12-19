@@ -74,7 +74,7 @@ Trainer.lr = 1e-04
 Trainer.patience = 10
 Trainer.num_epochs = 100
 
-Trainer.optimizer_class = @torch.optim.Adam
+Trainer.optimizer_class = @torch.optim.SGD
 Trainer.weight_decay = 0
 Trainer.input_width = %INPUT_WIDTH
 Trainer.input_height = %INPUT_HEIGHT

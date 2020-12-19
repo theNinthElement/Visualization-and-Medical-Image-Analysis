@@ -12,6 +12,7 @@ LOGGER = logging.getLogger(__name__)
 def _register_configurables():
     # Optimizer
     gin.external_configurable(torch.optim.Adam, module="torch.optim")
+    gin.external_configurable(torch.optim.SGD, module="torch.optim")
     # Loss functions
     gin.external_configurable(torch.nn.CrossEntropyLoss, module="torch.nn")
 
