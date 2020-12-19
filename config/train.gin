@@ -38,7 +38,7 @@ ValidDataset.root_dir = '/scratch/dpadma2s/neuroscience_lab_data/final_split_pat
 VALID_DATASET = @ValidDataset()
 
 # Data loader configuration
-get_train_valid_test_loader.batch_size = 64
+get_train_valid_test_loader.batch_size = 128
 get_train_valid_test_loader.random_seed = 39248
 get_train_valid_test_loader.num_workers = 0
 get_train_valid_test_loader.train_dataset = %TRAIN_DATASET

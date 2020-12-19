@@ -240,18 +240,23 @@ class Trainer:
 
             input_image = data["image"]
             target = data["label"]
-            target = torch.argmax(target, dim=1)
+            target_argmax = torch.argmax(target, dim=1)
 
             self.optimizer.zero_grad()
 
             outputs_segmentation = self.net(input_image)
-            loss = self.criterion_segmentation(outputs_segmentation, target)
+            if isinstance(self.criterion_segmentation, DiceLoss):
+                print('Dice')
+                loss = self.criterion_segmentation(outputs_segmentation, target)
+            else:
+                print('CE')
+                loss = self.criterion_segmentation(outputs_segmentation, target_argmax)
 
             av_loss += loss.item() / self.loss_scale
 
             if batch == 0:
                 list_of_figs = self.write_validation_images(
-                    outputs_segmentation, target
+                    outputs_segmentation, target_argmax
                 )
                 self.tensorboard_writer.add_figure(
                     "Predictions vs target",
