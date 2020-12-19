@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import torch
 from torch.utils.tensorboard import SummaryWriter
 from torch.optim.lr_scheduler import StepLR
+from visualizer.loss_function.dice_loss import DiceLoss
 
 
 LOGGER = logging.getLogger(__name__)
@@ -41,7 +42,7 @@ class Trainer:
         device="cpu",
     ):
         self.net = net
-        self.criterion_segmentation = segment_criterion
+        self.criterion_segmentation = segment_criterion()
         self.train_loader = train_loader
         self.valid_loader = valid_loader
         self.model_output_path = model_output_path
@@ -108,7 +109,10 @@ class Trainer:
 
                 input_image = data["image"]
                 target = data["label"]
-                target = torch.argmax(target, dim=1)
+
+                if not isinstance(self.criterion_segmentation, DiceLoss):
+                    # One hot encoding for loss functions like CE and focal loss
+                    target = torch.argmax(target, dim=1)
 
                 self.optimizer.zero_grad()
 

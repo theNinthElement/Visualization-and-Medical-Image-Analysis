@@ -10,11 +10,11 @@ import torch
 import matplotlib.pyplot as plt
 
 from torch.utils.data import Dataset
-from torch.utils.data import ConcatDataset
 
-from visualizer.data_loader.data_loader import get_train_valid_test_loader
 from sklearn.metrics import precision_recall_fscore_support
 from sklearn.metrics import confusion_matrix
+from visualizer.loss_function.dice_loss import DiceLoss
+from visualizer.loss_function.dice_loss import get_dice_coefficient
 
 LOGGER = logging.getLogger(__name__)
 
@@ -69,6 +69,7 @@ def evaluate_model(
     state_test = torch.load(model_path, map_location=device)
     net.load_state_dict(state_test)
     net.eval()
+    criterion = criterion()
 
     # instantiate dataset
     train_loader, valid_loader, test_loader = data_loaders
@@ -83,30 +84,37 @@ def evaluate_model(
     df_columns = ["loss", "precision", "recall", "f1-score"]
     df_micro = pd.DataFrame(columns=df_columns)
     df_macro = pd.DataFrame(columns=df_columns)
+    df_dice = pd.DataFrame(columns=['loss', 'dice'])
     confusion_matrix_array = np.zeros((num_classes, num_classes))
     precision_per_class = np.zeros((num_classes))
     recall_per_class = np.zeros((num_classes))
     f1score_per_class = np.zeros((num_classes))
 
     for data in test_loader:
-        LOGGER.info("Predicting on image: %s", str(len(df_micro) + 1))
+        LOGGER.info("Predicting on image: %s", str(len(df_dice) + 1))
 
         images = data["image"]
         labels_segmentation = data["label"]
-
+        labels_segmentation_argmax = torch.argmax(labels_segmentation, dim=1)
         outputs_segmentation = net(images)
+        outputs_segmentation_argmax = outputs_segmentation.argmax(axis=1)
 
-        labels_segmentation = torch.argmax(labels_segmentation, dim=1)
-        loss = criterion(outputs_segmentation, labels_segmentation)
+        if isinstance(criterion, DiceLoss):
+            loss = criterion(outputs_segmentation, labels_segmentation)
+        else:
+            loss = criterion(outputs_segmentation, labels_segmentation_argmax)
 
-        outputs_segmentation = outputs_segmentation.argmax(axis=1)
+        dice_value = get_dice_coefficient(outputs_segmentation, labels_segmentation)
+        dice_value = dice_value.mean()
+        LOGGER.info("Dice co-efficient for image %s: %s", str(len(df_dice) + 1), dice_value.item())
+        df_dice.loc[len(df_dice)] = [loss.detach().numpy(), dice_value]
 
         if visualize and len(df_micro) % 20 == 0:
             plt.subplot(121)
-            plt.imshow(torch.squeeze(outputs_segmentation).detach().numpy())
+            plt.imshow(torch.squeeze(outputs_segmentation_argmax).detach().numpy())
             plt.title("Prediction")
             plt.subplot(122)
-            plt.imshow(torch.squeeze(labels_segmentation).detach().numpy())
+            plt.imshow(torch.squeeze(labels_segmentation_argmax).detach().numpy())
             plt.title("Target label")
             plt.suptitle("Visualizer result")
             LOGGER.info("Saving image number: %s", str(len(df_micro) + 1))
@@ -116,10 +124,9 @@ def evaluate_model(
                 + str(len(df_micro) + 1)
                 + ".jpg"
             )
-            # plt.show()
 
-        outputs_seg_flatten = torch.flatten(outputs_segmentation, start_dim=1)
-        labels_seg_flatten = torch.flatten(labels_segmentation, start_dim=1)
+        outputs_seg_flatten = torch.flatten(outputs_segmentation_argmax, start_dim=1)
+        labels_seg_flatten = torch.flatten(labels_segmentation_argmax, start_dim=1)
 
         precision_micro, recall_micro, f1score_micro = calculate_metrics(
             labels_seg_flatten.detach().numpy(),
@@ -168,6 +175,7 @@ def evaluate_model(
             labels_seg_flatten.detach().numpy(), outputs_seg_flatten.detach().numpy()
         )
 
+    df_dice.loc["mean"] = df_dice.mean()
     df_micro.loc["mean"] = df_micro.mean()
     df_macro.loc["mean"] = df_macro.mean()
     df_normalized_confusion_matrix = pd.DataFrame(
@@ -180,6 +188,7 @@ def evaluate_model(
     excel_writer = pd.ExcelWriter(
         os.path.join(report_output_path, "report.xlsx"), engine="xlsxwriter"
     )
+    df_dice.to_excel(excel_writer, sheet_name="dice")
     df_micro.to_excel(excel_writer, sheet_name="micro")
     df_macro.to_excel(excel_writer, sheet_name="macro")
     df_normalized_confusion_matrix.to_excel(
