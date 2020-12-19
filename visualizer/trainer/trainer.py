@@ -246,10 +246,8 @@ class Trainer:
 
             outputs_segmentation = self.net(input_image)
             if isinstance(self.criterion_segmentation, DiceLoss):
-                print('Dice')
                 loss = self.criterion_segmentation(outputs_segmentation, target)
             else:
-                print('CE')
                 loss = self.criterion_segmentation(outputs_segmentation, target_argmax)
 
             av_loss += loss.item() / self.loss_scale
