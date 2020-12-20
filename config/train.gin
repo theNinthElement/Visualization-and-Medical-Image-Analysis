@@ -69,12 +69,12 @@ torch.nn.CrossEntropyLoss.weight = @calculate_weight()
 
 Trainer.segment_criterion = @DiceLoss
 
-Trainer.lr_step_size = 5
-Trainer.lr = 1e-04
-Trainer.patience = 10
+Trainer.lr_step_size = 10
+Trainer.lr = 1e-05
+Trainer.patience = 15
 Trainer.num_epochs = 100
 
-Trainer.optimizer_class = @torch.optim.SGD
-Trainer.weight_decay = 0
+Trainer.optimizer_class = @torch.optim.Adam
+Trainer.weight_decay = 0.001
 Trainer.input_width = %INPUT_WIDTH
 Trainer.input_height = %INPUT_HEIGHT

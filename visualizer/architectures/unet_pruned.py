@@ -88,7 +88,7 @@ class Unet_pruned(nn.Module):
                 padding=1,
                 output_padding=1,
             ),
-            nn.Softmax(dim=1),
+            nn.ReLU(),
         )
         return block
 
