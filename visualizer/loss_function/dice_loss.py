@@ -12,7 +12,7 @@ def get_dice_coefficient(input, target, smooth=1.0):
 @gin.configurable
 class DiceLoss(nn.Module):
     def __init__(self, smooth=1.0):
-        super().__init__()
+        super(DiceLoss, self).__init__()
         self.smooth = smooth
 
     def forward(self, input, target):

@@ -66,8 +66,8 @@ def split(
 @gin.configurable
 def get_train_valid_test_loader(
     train_dataset: torch.utils.data.Dataset,
-    valid_dataset,
-    test_dataset,
+    valid_dataset: torch.utils.data.Dataset,
+    test_dataset: torch.utils.data.Dataset,
     batch_size: int = 8,
     random_seed: int = 0,
     shuffle: bool = True,
