@@ -126,6 +126,7 @@ def evaluate_model(
                 + str(len(df_dice) + 1)
                 + ".jpg"
             )
+            plt.close(fig)
 
         outputs_seg_flatten = torch.flatten(outputs_segmentation_argmax, start_dim=1)
         labels_seg_flatten = torch.flatten(labels_segmentation_argmax, start_dim=1)
