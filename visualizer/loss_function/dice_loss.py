@@ -1,7 +1,9 @@
 import torch.nn as nn
+from torch.nn import functional as F
 import gin
 
 def get_dice_coefficient(input, target, smooth=1.0):
+    input = F.softmax(input, dim=1)
     input = input.contiguous()
     target = target.contiguous()
     intersection = (input * target).sum(dim=2).sum(dim=2)
