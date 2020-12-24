@@ -66,8 +66,8 @@ def split(
 @gin.configurable
 def get_train_valid_test_loader(
     train_dataset: torch.utils.data.Dataset,
-    valid_dataset,
-    test_dataset,
+    valid_dataset: torch.utils.data.Dataset,
+    test_dataset: torch.utils.data.Dataset,
     batch_size: int = 8,
     random_seed: int = 0,
     shuffle: bool = True,
@@ -114,7 +114,7 @@ def get_train_valid_test_loader(
 
     valid_loader = torch.utils.data.DataLoader(
         valid_dataset,
-        batch_size=batch_size,
+        batch_size=8,
         shuffle=shuffle,
         num_workers=num_workers,
         pin_memory=pin_memory,
@@ -123,7 +123,7 @@ def get_train_valid_test_loader(
 
     test_loader = torch.utils.data.DataLoader(
         test_dataset,
-        batch_size=batch_size,
+        batch_size=1,
         shuffle=shuffle,
         num_workers=num_workers,
         pin_memory=pin_memory,

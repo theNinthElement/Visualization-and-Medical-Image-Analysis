@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import torch
 from torch.utils.tensorboard import SummaryWriter
 from torch.optim.lr_scheduler import StepLR
+from visualizer.loss_function.dice_loss import DiceLoss
 
 
 LOGGER = logging.getLogger(__name__)
@@ -41,7 +42,7 @@ class Trainer:
         device="cpu",
     ):
         self.net = net
-        self.criterion_segmentation = segment_criterion
+        self.criterion_segmentation = segment_criterion()
         self.train_loader = train_loader
         self.valid_loader = valid_loader
         self.model_output_path = model_output_path
@@ -108,7 +109,10 @@ class Trainer:
 
                 input_image = data["image"]
                 target = data["label"]
-                target = torch.argmax(target, dim=1)
+
+                if not isinstance(self.criterion_segmentation, DiceLoss):
+                    # One hot encoding for loss functions like CE and focal loss
+                    target = torch.argmax(target, dim=1)
 
                 self.optimizer.zero_grad()
 
@@ -236,18 +240,21 @@ class Trainer:
 
             input_image = data["image"]
             target = data["label"]
-            target = torch.argmax(target, dim=1)
+            target_argmax = torch.argmax(target, dim=1)
 
             self.optimizer.zero_grad()
 
             outputs_segmentation = self.net(input_image)
-            loss = self.criterion_segmentation(outputs_segmentation, target)
+            if isinstance(self.criterion_segmentation, DiceLoss):
+                loss = self.criterion_segmentation(outputs_segmentation, target)
+            else:
+                loss = self.criterion_segmentation(outputs_segmentation, target_argmax)
 
             av_loss += loss.item() / self.loss_scale
 
             if batch == 0:
                 list_of_figs = self.write_validation_images(
-                    outputs_segmentation, target
+                    outputs_segmentation, target_argmax
                 )
                 self.tensorboard_writer.add_figure(
                     "Predictions vs target",

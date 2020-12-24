@@ -6,6 +6,7 @@ import visualizer.datasets.test_dataset
 import visualizer.datasets.valid_dataset
 import visualizer.utils.preprocessing
 import visualizer.data_loader.data_loader
+import visualizer.loss_function.dice_loss
 
 INPUT_HEIGHT = 240
 INPUT_WIDTH = 240
@@ -15,7 +16,6 @@ NUM_CLASSES = 4
 TRANSFORM_CONFIGURATION = {
 '0': {'transform_type': 'NormalizeImage', 'params': {'mean' :128.0, 'stddev': 128.0}}
 }
-# TRANSFORM_CONFIGURATION = {}
 configure_transforms.config = %TRANSFORM_CONFIGURATION
 
 TrainDataset.transform = @configure_transforms()
@@ -50,14 +50,6 @@ Unet_pruned.num_classes = %NUM_CLASSES
 
 # Evaluation
 evaluate_model.net = @Unet_pruned()
-evaluate_model.num_classes = %NUM_CLASSES
-evaluate_model.visualize = True
-evaluate_model.data_loaders = %DATA_LOADERS
-
-# get_bg_weights.num_characters = %NUM_CLASSES
-# get_bg_weights.bg_class_weight = 0.08
-# torch.nn.CrossEntropyLoss.weight = @get_weights()
-# evaluate_model.criterion = @torch.nn.CrossEntropyLoss()
 
 # focal_loss.alpha = 1
 # evaluate_model.criterion = @focal_loss
@@ -67,4 +59,11 @@ calculate_weight.num_classes = %NUM_CLASSES
 calculate_weight.loader_idx = 2
 calculate_weight.report_path = "report/"
 torch.nn.CrossEntropyLoss.weight = @calculate_weight()
-evaluate_model.criterion = @torch.nn.CrossEntropyLoss()
+# evaluate_model.criterion = @torch.nn.CrossEntropyLoss
+
+evaluate_model.criterion = @DiceLoss
+
+evaluate_model.num_classes = %NUM_CLASSES
+evaluate_model.visualize = True
+evaluate_model.data_loaders = %DATA_LOADERS
+evaluate_model.image_output_path = '/scratch/dpadma2s/neuroscience_lab_data'

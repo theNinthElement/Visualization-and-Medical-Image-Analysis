@@ -12,8 +12,8 @@ else:
 dependencies = [
     "click>=7.0",
     "numpy>=1.17.0,<2.0",
-    "torch",
-    "torchvision",
+    "torch==1.5.0",
+    "torchvision==0.6.0",
     "opencv-python>=4.1.1.26,<5.0",
     "tensorboard==2.3.0",
     "scikit-learn>=0.21.0,<1.0",
