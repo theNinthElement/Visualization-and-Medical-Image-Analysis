@@ -84,7 +84,7 @@ def evaluate_model(
 
     LOGGER.info("Ready to start evaluating!")
 
-    df_dice = pd.DataFrame(columns=['class _0', 'class_1', 'class_2', 'class_3'])
+    df_dice = pd.DataFrame(columns=['id', 'class _0', 'class_1', 'class_2', 'class_3'])
 
     running_dice_0 = []
     running_dice_1 = []
@@ -102,8 +102,6 @@ def evaluate_model(
         LOGGER.info("Predicting on patient id: %s", data["id"][0])
 
         for image, label in zip(data["image"], data["label"]):
-            LOGGER.info("Predicting on image %s of patient id %s", count, data["id"])
-
             images = image
             outputs_segmentation = net(images)
 
@@ -124,15 +122,22 @@ def evaluate_model(
             label_class3[label_class3 != 3] = 0
             label_class3[label_class3 == 3] = 1
 
-            dice_value_0 = get_dice_coefficient(outputs_segmentation, label_class0).mean()
-            dice_value_1 = get_dice_coefficient(outputs_segmentation, label_class1).mean()
-            dice_value_2 = get_dice_coefficient(outputs_segmentation, label_class2).mean()
-            dice_value_3 = get_dice_coefficient(outputs_segmentation, label_class3).mean()
+            dice_value_0 = get_dice_coefficient(outputs_segmentation, label_class0).mean().detach().item()
+            dice_value_1 = get_dice_coefficient(outputs_segmentation, label_class1).mean().detach().item()
+            dice_value_2 = get_dice_coefficient(outputs_segmentation, label_class2).mean().detach().item()
+            dice_value_3 = get_dice_coefficient(outputs_segmentation, label_class3).mean().detach().item()
 
             dice_per_case_0.append(dice_value_0)
             dice_per_case_1.append(dice_value_1)
             dice_per_case_2.append(dice_value_2)
             dice_per_case_3.append(dice_value_3)
+
+            LOGGER.info("Predicting on image %s of patient id %s", count, data["id"])
+            LOGGER.info("Dice co-efficient: (%s, %s, %s, %s)",  dice_value_0,
+                                                                dice_value_1,
+                                                                dice_value_2,
+                                                                dice_value_3,
+                        )
 
             if visualize:
                 fig, (ax1, ax2) = plt.subplots(1, 2)
@@ -162,10 +167,11 @@ def evaluate_model(
         LOGGER.info("Dice co-efficient for class 2: %s", per_case_dice_class_2)
         LOGGER.info("Dice co-efficient for class 4: %s", per_case_dice_class_3)
 
-        df_dice.loc[len(df_dice)] = [per_case_dice_class_0.detach().numpy(),
-                                     per_case_dice_class_0.detach().numpy(),
-                                     per_case_dice_class_0.detach().numpy(),
-                                     per_case_dice_class_0.detach().numpy(),
+        df_dice.loc[len(df_dice)] = [data["id"][0],
+                                     per_case_dice_class_0,
+                                     per_case_dice_class_1,
+                                     per_case_dice_class_2,
+                                     per_case_dice_class_3,
                                     ]
 
         running_dice_0.append(per_case_dice_class_0)
@@ -177,13 +183,13 @@ def evaluate_model(
     mean_dice_class_1 = sum(running_dice_1) / len(running_dice_1)
     mean_dice_class_2 = sum(running_dice_2) / len(running_dice_2)
     mean_dice_class_3 = sum(running_dice_3) / len(running_dice_3)
+    LOGGER.info("\n ####### Evaluation completed: Final statistics ####### ")
+    LOGGER.info("Dice co-efficient for background class: %s", mean_dice_class_0)
+    LOGGER.info("Dice co-efficient for class 1: %s", mean_dice_class_1)
+    LOGGER.info("Dice co-efficient for class 2: %s", mean_dice_class_2)
+    LOGGER.info("Dice co-efficient for class 4: %s", mean_dice_class_3)
 
-    LOGGER.info("Dice co-efficient for background class: ", mean_dice_class_0)
-    LOGGER.info("Dice co-efficient for class 1: ", mean_dice_class_1)
-    LOGGER.info("Dice co-efficient for class 2: ", mean_dice_class_2)
-    LOGGER.info("Dice co-efficient for class 4: ", mean_dice_class_3)
-
-    df_dice.loc["mean"] = df_dice.mean()
+    df_dice.loc["mean"] = ['0', df_dice.iloc[:, 1].mean(), df_dice.iloc[:, 2].mean(), df_dice.iloc[:, 3].mean(), df_dice.iloc[:, 4].mean()]
     excel_writer = pd.ExcelWriter(
         os.path.join(report_output_path, "report.xlsx"), engine="xlsxwriter"
     )
