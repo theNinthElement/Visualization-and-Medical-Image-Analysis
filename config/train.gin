@@ -61,12 +61,14 @@ calculate_weight.data_loaders = %DATA_LOADERS
 calculate_weight.num_classes = %NUM_CLASSES
 calculate_weight.loader_idx = 0
 calculate_weight.report_path = "report/"
-torch.nn.CrossEntropyLoss.weight = @calculate_weight()
+class_weights = @calculate_weight()
+torch.nn.CrossEntropyLoss.weight = %class_weights
 # Trainer.segment_criterion = @torch.nn.CrossEntropyLoss
 
 # focal_loss.alpha = 5
 # Trainer.segment_criterion = @focal_loss
 
+DiceLoss.weight = %class_weights
 Trainer.segment_criterion = @DiceLoss
 
 Trainer.lr_step_size = 10
