@@ -1,13 +1,23 @@
 import torch.nn as nn
+import torch
 from torch.nn import functional as F
 import gin
 
 def get_dice_coefficient(input, target, smooth=1.0):
     # input = F.softmax(input, dim=1) # If activation is ReLU
-    input = input.contiguous()
-    target = target.contiguous()
-    intersection = (input * target).sum(dim=2).sum(dim=2)
-    dice_coeff = ((2.0 * intersection + smooth) / ((input**2 + target**2).sum(dim=2).sum(dim=2) + smooth))
+    input = input.contiguous() # [bs, 4, 240, 240]
+    target = target.contiguous() #[bs, 240, 240] --- 1 for class of interest and 0 otherwise
+    target = target.unsqueeze(1)
+    intersection = (input * target).sum(dim=2).sum(dim=2) # [bs, 4]
+    dice_coeff = ((2.0 * intersection + smooth) / ((input**2 + target**2).sum(dim=2).sum(dim=2) + smooth)) # [bs, 4]
+    return dice_coeff
+
+def get_dice_coefficient_imp2(input, target):
+    target = target.unsqueeze(1)
+    dims = tuple(range(2, target.ndimension()))
+    intersection = torch.sum(input * target, dims)
+    cardinality = torch.sum(input ** 2 + target ** 2, dims)
+    dice_coeff = ((2. * intersection + 1) / (cardinality + 1))
     return dice_coeff
 
 @gin.configurable

@@ -75,7 +75,14 @@ class NormalizeImage(object):
         return image
 
     def __call__(self, sample: typing.Dict) -> typing.Dict:
-        sample["image"] = self.normalize(sample["image"])
+
+        if isinstance(sample["image"], list):
+            normalized_images = []
+            for i in sample["image"]:
+                normalized_images.append(self.normalize(i))
+            sample["image"] = normalized_images
+        else:
+            sample["image"] = self.normalize(sample["image"])
         return sample
 
 
@@ -87,14 +94,28 @@ class ToTensor(object):
 
     def __call__(self, sample: typing.Dict) -> typing.Dict:
 
-        sample["image"] = self.convert_to_tensor(sample["image"])
+        if isinstance(sample["image"], list):
+            tensor_images = []
+            for i in sample["image"]:
+                tensor_images.append(self.convert_to_tensor(i))
+            sample["image"] = tensor_images
+        else:
+            sample["image"] = self.convert_to_tensor(sample["image"])
 
         if "label" in sample.keys():
-            # TODO: Check whether this label renaming is necessary
-            sample["label"][np.where(sample["label"]==4)] = 3
-            label = torch.from_numpy(sample["label"]).float()
-            one_hot_tensor = torch.nn.functional.one_hot(label.long(), num_classes=4)
-            sample["label"] = one_hot_tensor.permute(2, 0, 1).to(dtype=torch.float32)
+            if isinstance(sample["label"], list):
+                label = []
+                for i in sample["label"]:
+                    i[np.where(i == 4)] = 3
+                    i = torch.from_numpy(i).float()
+                    label.append(i)
+                sample["label"] = label
+            else:
+                # TODO: Check whether this label renaming is necessary
+                sample["label"][np.where(sample["label"]==4)] = 3
+                label = torch.from_numpy(sample["label"]).float()
+                one_hot_tensor = torch.nn.functional.one_hot(label.long(), num_classes=4)
+                sample["label"] = one_hot_tensor.permute(2, 0, 1).to(dtype=torch.float32)
 
         return sample
 
