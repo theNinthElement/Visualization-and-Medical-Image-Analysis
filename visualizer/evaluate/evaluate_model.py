@@ -131,7 +131,7 @@ def evaluate_model(
             label_coded = torch.nn.functional.one_hot(label.long(), num_classes=4)
             label_coded = label_coded.squeeze(0)
             label_coded = label_coded.permute(2, 0, 1).to(dtype=torch.float32)
-            dice_value = get_dice_coefficient(outputs_segmentation, label_coded, weight=class_weights).detach().numpy()
+            dice_value = get_dice_coefficient(outputs_segmentation, label_coded, weight=class_weights, device=device).detach().numpy()
             dice_value_0 = dice_value[0][0]
             dice_value_1 = dice_value[0][1]
             dice_value_2 = dice_value[0][2]
