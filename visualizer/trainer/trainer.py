@@ -66,6 +66,12 @@ class Trainer:
         self.input_height = input_height
         self.input_width = input_width
 
+        if self.device.type == "cuda":
+            self.criterion_segmentation.cuda()
+
+        if self.device.type == "cuda" and self.secondary_loss:
+            self.secondary_loss.cuda()
+
     def _sample_to_device(self, sample):
         device_sample = {}
         for key, value in sample.items():
@@ -127,9 +133,6 @@ class Trainer:
 
                 outputs_segmentation = self.net(input_image)
 
-                if self.device.type == "cuda":
-                    self.criterion_segmentation.cuda()
-
                 loss1 = self.criterion_segmentation(outputs_segmentation, target)
 
                 if self.secondary_loss:
@@ -137,7 +140,8 @@ class Trainer:
                 else:
                     loss2 = torch.tensor(0)
 
-                LOGGER.info('Dice Loss: %s, CE Loss: %s', loss1, loss2)
+                LOGGER.info('Dice Loss: %s, CE'
+                            ' Loss: %s', loss1, loss2)
                 loss = loss1 + loss2
                 loss.backward()
 
