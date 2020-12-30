@@ -64,11 +64,12 @@ calculate_weight.report_path = "report/"
 class_weights = @calculate_weight()
 torch.nn.CrossEntropyLoss.weight = %class_weights
 # Trainer.segment_criterion = @torch.nn.CrossEntropyLoss
+Trainer.secondary_loss = @torch.nn.CrossEntropyLoss
 
 # focal_loss.alpha = 5
 # Trainer.segment_criterion = @focal_loss
 
-DiceLoss.weight = %class_weights
+# DiceLoss.weight = %class_weights
 Trainer.segment_criterion = @DiceLoss
 
 Trainer.lr_step_size = 10

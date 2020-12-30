@@ -25,9 +25,12 @@ def get_dice_coefficient_imp2(input, target):
 class DiceLoss(nn.Module):
     def __init__(self, weight=None, smooth=1.0, device='cpu'):
         super(DiceLoss, self).__init__()
-        self.weight = weight
         self.smooth = smooth
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        if weight == None:
+            self.weight = torch.tensor([1, 1, 1, 1])
+        else:
+            self.weight = weight
 
     def forward(self, input, target):
         dice_coeff = get_dice_coefficient(input, target, self.weight, self.smooth, self.device)
