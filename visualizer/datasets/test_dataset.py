@@ -33,12 +33,12 @@ class TestDataset(Dataset):
         LOGGER.info("Root directory read: {}".format(root_dir))
         self.transform = transform
         self.directory_pattern = re.compile("/(BraTS19_[A-Z0-9_]+)")
-        self.image_dir_list = self.get_doc_dirs_list(self.root_dir)
+        self.complete_data = self.get_doc_dirs_list(self.root_dir)
         LOGGER.info(
-            "Number of image directories read: {}".format(len(self.image_dir_list))
+            "Number of image directories read: {}".format(len(self.complete_data))
         )
 
-    def get_doc_dirs_list(self, root_dir: str) -> typing.List:
+    def get_doc_dirs_list(self, root_dir: str) -> typing.Dict:
         """
 
         Args:
@@ -52,18 +52,28 @@ class TestDataset(Dataset):
         """
 
         image_dirs = []
+        image_patient_id = []
+        complete_data = {}
 
         for subdir, directory, files in os.walk(root_dir):
             image_directory = re.search(self.directory_pattern, subdir)
             if image_directory:
                 image_dirs.append(subdir)
+                image_patient_id.append(image_directory.group(0)[1:-1])
 
         if len(image_dirs) == 0:
             LOGGER.warning(
                 "Root directory does not contain images. Kindly check the directory."
             )
 
-        return image_dirs
+        self.all_patient_id = list(set(image_patient_id))
+        for patient_id in self.all_patient_id:
+            complete_data[patient_id] = []
+            for dirs in image_dirs:
+                if patient_id in dirs:
+                    complete_data[patient_id].append(dirs)
+
+        return complete_data
 
     def get_image_label(self, directory):
 
@@ -96,24 +106,34 @@ class TestDataset(Dataset):
 
         return image, label
 
+    def get_all_image_label(self, directory):
+        all_slice_image = []
+        all_slice_label = []
+
+        for i in directory:
+            image, label = self.get_image_label(i)
+            all_slice_image.append(image)
+            all_slice_label.append(label)
+
+        return all_slice_image, all_slice_label
 
     def __len__(self):
-        return len(self.image_dir_list)
+        return len(self.complete_data)
 
     def __getitem__(self, idx: int) -> typing.Dict:
 
-        directory = self.image_dir_list[idx]
+        id = self.all_patient_id[idx]
+        directory = self.complete_data[id]
 
-        image, label = self.get_image_label(directory)
+        all_images, all_labels = self.get_all_image_label(directory)
 
         sample = {
-            "image": image,
-            "label": label,
+            "image": all_images,
+            "label": all_labels,
+            "id": id,
         }
 
         if self.transform:
             sample = self.transform(sample)
-
-        # print('Final shape after transform: ', sample["image"].shape, sample["label"].shape)
 
         return sample

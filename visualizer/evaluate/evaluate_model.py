@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 import torch
 import matplotlib.pyplot as plt
+from copy import deepcopy
 
 from torch.utils.data import Dataset
 
@@ -72,6 +73,7 @@ def evaluate_model(
     net.load_state_dict(state_test)
     net.eval()
     criterion = criterion()
+    class_weights = torch.tensor([1, 1, 1, 1])
 
     # instantiate dataset
     train_loader, valid_loader, test_loader = data_loaders
@@ -83,185 +85,133 @@ def evaluate_model(
 
     LOGGER.info("Ready to start evaluating!")
 
-    # df_columns = ["loss", "precision", "recall", "f1-score"]
-    # df_micro = pd.DataFrame(columns=df_columns)
-    # df_macro = pd.DataFrame(columns=df_columns)
-    df_dice = pd.DataFrame(columns=['loss', 'dice'])
-    # confusion_matrix_array = np.zeros((num_classes, num_classes))
-    # precision_per_class = np.zeros((num_classes))
-    # recall_per_class = np.zeros((num_classes))
-    # f1score_per_class = np.zeros((num_classes))
+    df_dice_all = pd.DataFrame(columns=['id', 'class _0', 'class_1', 'class_2', 'class_3'])
+    df_dice_percase = pd.DataFrame(columns=['id', 'class _0', 'class_1', 'class_2', 'class_3'])
+    running_dice_0 = []
+    running_dice_1 = []
+    running_dice_2 = []
+    running_dice_3 = []
 
     for data in test_loader:
-        LOGGER.info("Predicting on image: %s", str(len(df_dice) + 1))
+        count = 0
 
-        images = data["image"]
-        labels_segmentation = data["label"]
-        labels_segmentation_argmax = torch.argmax(labels_segmentation, dim=1)
-        outputs_segmentation = net(images)
-        outputs_segmentation_argmax = outputs_segmentation.argmax(axis=1)
+        dice_per_case_0 = []
+        dice_per_case_1 = []
+        dice_per_case_2 = []
+        dice_per_case_3 = []
 
-        if isinstance(criterion, DiceLoss):
-            loss = criterion(outputs_segmentation, labels_segmentation)
-        else:
-            loss = criterion(outputs_segmentation, labels_segmentation_argmax)
+        LOGGER.info("Predicting on patient id: %s", data["id"][0])
 
-        dice_value = get_dice_coefficient(outputs_segmentation, labels_segmentation)
-        dice_value_mean = dice_value.mean()
-        LOGGER.info("Dice co-efficient for image %s: %s", str(len(df_dice) + 1), dice_value_mean.detach().numpy())
-        LOGGER.info("Dice loss for image %s: %s", str(len(df_dice) + 1), loss.detach().numpy())
-        df_dice.loc[len(df_dice)] = [loss.detach().numpy(), dice_value_mean.detach().numpy()]
+        for image, label in zip(data["image"], data["label"]):
+            count += 1
+            images = image
+            outputs_segmentation = net(images)
 
-        if visualize and len(df_dice) % 10 == 0:
-            fig, (ax1, ax2) = plt.subplots(1, 2)
-            ax1.imshow(torch.squeeze(outputs_segmentation_argmax).detach().numpy())
-            ax1.set_title("Prediction")
-            ax2.imshow(torch.squeeze(labels_segmentation_argmax).detach().numpy())
-            ax2.set_title("Target label")
-            fig.suptitle("Visualizer result")
-            LOGGER.info("Saving image number: %s", str(len(df_dice) + 1))
-            fig.savefig(
-                image_output_path
-                + "/output_images/"
-                + str(len(df_dice) + 1)
-                + ".jpg"
-            )
-            plt.close(fig)
+            # Method 1
+            # label_class0 = deepcopy(label)
+            # label_class1 = deepcopy(label)
+            # label_class2 = deepcopy(label)
+            # label_class3 = deepcopy(label)
+            # label_class0[label_class0 != 0] = 1
+            # label_class1[label_class1 != 1] = 0
+            # label_class2[label_class2 != 2] = 0
+            # label_class2[label_class2 == 2] = 1
+            # label_class3[label_class3 != 3] = 0
+            # label_class3[label_class3 == 3] = 1
+            # label_class0 = label_class0.unsqueeze(1)
+            # label_class1 = label_class1.unsqueeze(1)
+            # label_class2 = label_class2.unsqueeze(1)
+            # label_class3 = label_class3.unsqueeze(1)
+            # dice_value_0 = get_dice_coefficient(outputs_segmentation, label_class0).mean().detach().item()
+            # dice_value_1 = get_dice_coefficient(outputs_segmentation, label_class1).mean().detach().item()
+            # dice_value_2 = get_dice_coefficient(outputs_segmentation, label_class2).mean().detach().item()
+            # dice_value_3 = get_dice_coefficient(outputs_segmentation, label_class3).mean().detach().item()
 
-        outputs_seg_flatten = torch.flatten(outputs_segmentation_argmax, start_dim=1)
-        labels_seg_flatten = torch.flatten(labels_segmentation_argmax, start_dim=1)
+            # Method 2
+            label_coded = torch.nn.functional.one_hot(label.long(), num_classes=4)
+            label_coded = label_coded.squeeze(0)
+            label_coded = label_coded.permute(2, 0, 1).to(dtype=torch.float32)
+            dice_value = get_dice_coefficient(outputs_segmentation, label_coded, weight=class_weights, device=device).detach().numpy()
+            dice_value_0 = dice_value[0][0]
+            dice_value_1 = dice_value[0][1]
+            dice_value_2 = dice_value[0][2]
+            dice_value_3 = dice_value[0][3]
 
-        # precision_micro, recall_micro, f1score_micro = calculate_metrics(
-        #     labels_seg_flatten.detach().numpy(),
-        #     outputs_seg_flatten.detach().numpy(),
-        #     False,
-        #     "micro",
-        # )
-        #
-        # if precision_micro == recall_micro == f1score_micro == 0:
-        #     continue
-        #
-        # precision_macro, recall_macro, f1score_macro = calculate_metrics(
-        #     labels_seg_flatten.detach().numpy(),
-        #     outputs_seg_flatten.detach().numpy(),
-        #     False,
-        #     "macro",
-        # )
-        #
-        # if precision_macro == recall_macro == f1score_macro == 0:
-        #     continue
-        #
-        # df_micro.loc[len(df_micro)] = [
-        #     loss.detach().numpy(),
-        #     precision_micro,
-        #     recall_micro,
-        #     f1score_micro,
-        # ]
-        #
-        # df_macro.loc[len(df_macro)] = [
-        #     loss.detach().numpy(),
-        #     precision_macro,
-        #     recall_macro,
-        #     f1score_macro,
-        # ]
+            dice_per_case_0.append(dice_value_0)
+            dice_per_case_1.append(dice_value_1)
+            dice_per_case_2.append(dice_value_2)
+            dice_per_case_3.append(dice_value_3)
 
-        # image_precision, image_recall, image_f1score = calculate_metrics(
-        #     labels_seg_flatten.detach().numpy(),
-        #     outputs_seg_flatten.detach().numpy(),
-        #     True,
-        # )
-        # precision_per_class = precision_per_class + image_precision
-        # recall_per_class = recall_per_class + image_recall
-        # f1score_per_class = f1score_per_class + image_f1score
-        #
-        # confusion_matrix_array = confusion_matrix_array + get_confusion_matrix(
-        #     labels_seg_flatten.detach().numpy(), outputs_seg_flatten.detach().numpy()
-        # )
+            LOGGER.info("Predicting on image %s of patient id %s with label statistics %s", count, data["id"], label.unique(return_counts=True))
+            LOGGER.info("Dice co-efficient: (%s, %s, %s, %s)",  dice_value_0,
+                                                                dice_value_1,
+                                                                dice_value_2,
+                                                                dice_value_3,
+                        )
 
-    df_dice.loc["mean"] = df_dice.mean()
-    # df_micro.loc["mean"] = df_micro.mean()
-    # df_macro.loc["mean"] = df_macro.mean()
-    # df_normalized_confusion_matrix = pd.DataFrame(
-    #     confusion_matrix_array / len(df_micro)
-    # )
-    # df_precision_per_class = pd.DataFrame(precision_per_class / len(df_micro))
-    # df_recall_per_class = pd.DataFrame(recall_per_class / len(df_micro))
-    # df_f1score_per_class = pd.DataFrame(f1score_per_class / len(df_micro))
+            if visualize:
+                fig, (ax1, ax2) = plt.subplots(1, 2)
+                ax1.imshow(torch.squeeze(torch.argmax(outputs_segmentation, dim=1)).detach().numpy())
+                ax1.set_title("Prediction")
+                ax2.imshow(torch.squeeze(label).detach().numpy())
+                ax2.set_title("Target label")
+                fig.suptitle("Visualizer result")
+                LOGGER.info("Saving image number: %s", data["id"][0] + '_' + str(count))
+                fig.savefig(
+                    image_output_path
+                    + "/output_images/"
+                    + data["id"][0] + '_' + str(count)
+                    + ".jpg"
+                )
+                plt.close(fig)
 
+            df_dice_all.loc[len(df_dice_all)] = [data["id"][0] + '_slice_' + str(count),
+                                         dice_value_0,
+                                         dice_value_1,
+                                         dice_value_2,
+                                         dice_value_3,
+                                         ]
+
+        per_case_dice_class_0 = sum(dice_per_case_0) / 155
+        per_case_dice_class_1 = sum(dice_per_case_1) / 155
+        per_case_dice_class_2 = sum(dice_per_case_2) / 155
+        per_case_dice_class_3 = sum(dice_per_case_3) / 155
+
+        LOGGER.info("Dice co-efficient for background class: %s ", per_case_dice_class_0)
+        LOGGER.info("Dice co-efficient for class 1: %s", per_case_dice_class_1)
+        LOGGER.info("Dice co-efficient for class 2: %s", per_case_dice_class_2)
+        LOGGER.info("Dice co-efficient for class 4: %s", per_case_dice_class_3)
+
+        running_dice_0.append(per_case_dice_class_0)
+        running_dice_1.append(per_case_dice_class_1)
+        running_dice_2.append(per_case_dice_class_2)
+        running_dice_3.append(per_case_dice_class_3)
+
+        df_dice_percase.loc[len(df_dice_percase)] = [data["id"][0],
+                                             per_case_dice_class_0,
+                                             per_case_dice_class_1,
+                                             per_case_dice_class_2,
+                                             per_case_dice_class_3,
+                                             ]
+
+    mean_dice_class_0 = sum(running_dice_0) / len(running_dice_0)
+    mean_dice_class_1 = sum(running_dice_1) / len(running_dice_1)
+    mean_dice_class_2 = sum(running_dice_2) / len(running_dice_2)
+    mean_dice_class_3 = sum(running_dice_3) / len(running_dice_3)
+
+    LOGGER.info("\n ####### Evaluation completed: Final statistics ####### ")
+    LOGGER.info("Dice co-efficient for background class: %s", mean_dice_class_0)
+    LOGGER.info("Dice co-efficient for class 1: %s", mean_dice_class_1)
+    LOGGER.info("Dice co-efficient for class 2: %s", mean_dice_class_2)
+    LOGGER.info("Dice co-efficient for class 4: %s", mean_dice_class_3)
+
+    df_dice_all.loc["mean"] = ['0', df_dice_all.iloc[:, 1].mean(), df_dice_all.iloc[:, 2].mean(), df_dice_all.iloc[:, 3].mean(), df_dice_all.iloc[:, 4].mean()]
+    df_dice_percase.loc["mean"] = ['0', df_dice_percase.iloc[:, 1].mean(), df_dice_percase.iloc[:, 2].mean(),
+                               df_dice_percase.iloc[:, 3].mean(), df_dice_percase.iloc[:, 4].mean()]
     excel_writer = pd.ExcelWriter(
         os.path.join(report_output_path, "report.xlsx"), engine="xlsxwriter"
     )
-    df_dice.to_excel(excel_writer, sheet_name="dice")
-    # df_micro.to_excel(excel_writer, sheet_name="micro")
-    # df_macro.to_excel(excel_writer, sheet_name="macro")
-    # df_normalized_confusion_matrix.to_excel(
-    #     excel_writer, sheet_name="normalized_confusion_matrix"
-    # )
-    # df_precision_per_class.to_excel(excel_writer, sheet_name="precision_per_class")
-    # df_recall_per_class.to_excel(excel_writer, sheet_name="recall_per_class")
-    # df_f1score_per_class.to_excel(excel_writer, sheet_name="f1score_per_class")
+    df_dice_all.to_excel(excel_writer, sheet_name="all")
+    df_dice_percase.to_excel(excel_writer, sheet_name="per_case")
     excel_writer.save()
     LOGGER.info("Results were written to %s", report_output_path)
-
-
-def calculate_metrics(
-    target: np.ndarray,
-    output: np.ndarray,
-    include_bg_class: bool = False,
-    average: str = None,
-    num_classes: int = 4,
-) -> typing.Tuple:
-    """
-    Calculates the evaluation metrics precision, recall and f-score for the average
-    method passed using sklearn.metrics.precision_recall_fscore_support.
-
-    Args:
-        target: np.ndarray
-        Flattened label prediction
-        output: np.ndarray
-        Flattened model prediction
-        include_bg_class: bool
-        Flag to whether include background class in metric calculation
-        average: string
-        Average argument for sklearn.metrics.precision_recall_fscore_support
-
-    Returns:
-        precision, recall, fscore: tuple
-        Evaluation metrics: precision, recall and fscore respectively
-
-    """
-    if include_bg_class:
-        start_label = 0
-    else:
-        start_label = 1
-    metrics = precision_recall_fscore_support(
-        target[0], output[0], labels=list(range(start_label, num_classes)), average=average
-    )
-
-    return metrics[0], metrics[1], metrics[2]
-
-
-def get_confusion_matrix(target: np.ndarray,
-                         output: np.ndarray,
-                         num_classes: int = 4,
-                         ) -> np.ndarray:
-    """
-    Calculates the confusion matrix normalized for each image with regard to all the classes
-    method passed using sklearn.metrics.confusion_matrix.
-
-    Args:
-        target: np.ndarray
-        Flattened label prediction
-        output: np.ndarray
-        Flattened model prediction
-
-    Returns:
-        confusion_matrix_: np.ndarray
-        Confusion matrix for all the classes
-
-    """
-
-    confusion_matrix_ = confusion_matrix(
-        target[0], output[0], labels=list(range(0, num_classes)), normalize="all"
-    )
-    return confusion_matrix_

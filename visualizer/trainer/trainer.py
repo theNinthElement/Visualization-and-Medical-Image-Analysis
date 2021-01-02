@@ -31,6 +31,7 @@ class Trainer:
         model_output_path,
         input_height,
         input_width,
+        secondary_loss=None,
         lr_step_size=5,
         lr=1e-04,
         patience=5,
@@ -51,6 +52,10 @@ class Trainer:
         self.weight_decay = weight_decay
         self.resume = resume
         self.num_epochs = num_epochs
+        if secondary_loss == None:
+            self.secondary_loss = secondary_loss
+        else:
+            self.secondary_loss = secondary_loss()
         self.optimizer = optimizer_class(
             self.net.parameters(), lr=self.lr, weight_decay=self.weight_decay
         )
@@ -60,6 +65,12 @@ class Trainer:
         self.loss_scale = 1.0
         self.input_height = input_height
         self.input_width = input_width
+
+        if self.device.type == "cuda":
+            self.criterion_segmentation.cuda()
+
+        if self.device.type == "cuda" and self.secondary_loss:
+            self.secondary_loss.cuda()
 
     def _sample_to_device(self, sample):
         device_sample = {}
@@ -114,15 +125,24 @@ class Trainer:
                     # One hot encoding for loss functions like CE and focal loss
                     target = torch.argmax(target, dim=1)
 
+                if not isinstance(self.secondary_loss, DiceLoss):
+                    # One hot encoding for loss functions like CE and focal loss
+                    secondary_target = torch.argmax(target, dim=1)
+
                 self.optimizer.zero_grad()
 
                 outputs_segmentation = self.net(input_image)
 
-                if self.device.type == "cuda":
-                    self.criterion_segmentation.cuda()
+                loss1 = self.criterion_segmentation(outputs_segmentation, target)
 
-                loss = self.criterion_segmentation(outputs_segmentation, target)
+                if self.secondary_loss:
+                    loss2 = self.secondary_loss(outputs_segmentation, secondary_target)
+                else:
+                    loss2 = torch.tensor(0)
 
+                LOGGER.info('Dice Loss: %s, CE'
+                            ' Loss: %s', loss1, loss2)
+                loss = loss1 + loss2
                 loss.backward()
 
                 self.optimizer.step()
@@ -240,21 +260,36 @@ class Trainer:
 
             input_image = data["image"]
             target = data["label"]
-            target_argmax = torch.argmax(target, dim=1)
+            target = data["label"]
+            secondary_target = torch.argmax(target, dim=1)
 
             self.optimizer.zero_grad()
 
             outputs_segmentation = self.net(input_image)
-            if isinstance(self.criterion_segmentation, DiceLoss):
-                loss = self.criterion_segmentation(outputs_segmentation, target)
+
+            if not isinstance(self.criterion_segmentation, DiceLoss):
+                # One hot encoding for loss functions like CE and focal loss
+                target = torch.argmax(target, dim=1)
+
+            if self.secondary_loss:
+                loss2 = self.secondary_loss(outputs_segmentation, secondary_target)
             else:
-                loss = self.criterion_segmentation(outputs_segmentation, target_argmax)
+                loss2 = torch.tensor(0)
+
+            loss1 = self.criterion_segmentation(outputs_segmentation, target)
+
+            if self.secondary_loss:
+                loss2 = self.secondary_loss(outputs_segmentation, secondary_target)
+            else:
+                loss2 = torch.tensor(0)
+
+            loss = loss1 + loss2
 
             av_loss += loss.item() / self.loss_scale
 
             if batch == 0:
                 list_of_figs = self.write_validation_images(
-                    outputs_segmentation, target_argmax
+                    outputs_segmentation, secondary_target
                 )
                 self.tensorboard_writer.add_figure(
                     "Predictions vs target",

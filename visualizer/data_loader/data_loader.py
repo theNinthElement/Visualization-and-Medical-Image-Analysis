@@ -130,7 +130,7 @@ def get_train_valid_test_loader(
         collate_fn=collate_fn,
     )
     LOGGER.info(
-        "Loading datasets: %d training images, %d validation images, %d test images with batch size %d",
+        "Loading datasets: %d training images, %d validation images, %d test patient cases with batch size %d",
         len(train_loader.dataset), len(valid_loader.dataset), len(test_loader.dataset), batch_size)
 
     return train_loader, valid_loader, test_loader
