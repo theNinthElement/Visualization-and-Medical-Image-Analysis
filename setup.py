@@ -50,5 +50,5 @@ setup(
             ],
         )
     ],
-    python_requires=">=3.7,<3.9",
+    python_requires=">=3.6.9,<3.9",
 )
