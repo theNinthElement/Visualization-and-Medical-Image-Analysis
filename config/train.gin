@@ -22,19 +22,19 @@ configure_transforms.config = %TRANSFORM_CONFIGURATION
 TrainDataset.transform = @configure_transforms()
 TrainDataset.input_height = %INPUT_HEIGHT
 TrainDataset.input_width = %INPUT_WIDTH
-TrainDataset.root_dir = '/scratch/dpadma2s/neuroscience_lab_data/final_split_patient_preprocessed/train/'
+TrainDataset.root_dir = '/home/aghosh/workspace/Visualization-and-Medical-Image-Analysis/train/'
 TRAIN_DATASET = @TrainDataset()
 
 TestDataset.transform = @configure_transforms()
 TestDataset.input_height = %INPUT_HEIGHT
 TestDataset.input_width = %INPUT_WIDTH
-TestDataset.root_dir = '/scratch/dpadma2s/neuroscience_lab_data/final_split_patient_preprocessed/test/'
+TestDataset.root_dir = '/home/aghosh/workspace/Visualization-and-Medical-Image-Analysis/test/'
 TEST_DATASET = @TestDataset()
 
 ValidDataset.transform = @configure_transforms()
 ValidDataset.input_height = %INPUT_HEIGHT
 ValidDataset.input_width = %INPUT_WIDTH
-ValidDataset.root_dir = '/scratch/dpadma2s/neuroscience_lab_data/final_split_patient_preprocessed/valid/'
+ValidDataset.root_dir = '/home/aghosh/workspace/Visualization-and-Medical-Image-Analysis/valid/'
 VALID_DATASET = @ValidDataset()
 
 # Data loader configuration
