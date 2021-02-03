@@ -75,7 +75,7 @@ Trainer.segment_criterion = @DiceLoss
 Trainer.lr_step_size = 10
 Trainer.lr = 1e-04
 Trainer.patience = 15
-Trainer.num_epochs = 100
+Trainer.num_epochs = 50
 
 Trainer.optimizer_class = @torch.optim.Adam
 Trainer.weight_decay = 0.001
