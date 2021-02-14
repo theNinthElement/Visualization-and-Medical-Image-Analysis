@@ -7,7 +7,7 @@ import visualizer.datasets.valid_dataset
 import visualizer.utils.preprocessing
 import visualizer.data_loader.data_loader
 import visualizer.loss_function.dice_loss
-import visualizer.Interpreter.occlusion_sensitivity
+import visualizer.interpreter.occlusion_sensitivity
 
 INPUT_HEIGHT = 240
 INPUT_WIDTH = 240

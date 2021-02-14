@@ -2,7 +2,7 @@ import logging
 import click
 import gin
 
-from visualizer.Interpreter.occlusion_sensitivity import occlusion_sensitivity
+from visualizer.interpreter.occlusion_sensitivity import occlusion_sensitivity
 from visualizer.utils import setup_logging
 from visualizer.train import _register_configurables
 
