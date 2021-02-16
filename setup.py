@@ -25,6 +25,7 @@ dependencies = [
     "nibabel",
     "nilearn",
     "black",
+    "seaborn",
 ]
 
 setup(
