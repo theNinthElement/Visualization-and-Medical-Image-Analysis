@@ -22,19 +22,19 @@ configure_transforms.config = %TRANSFORM_CONFIGURATION
 TrainDataset.transform = @configure_transforms()
 TrainDataset.input_height = %INPUT_HEIGHT
 TrainDataset.input_width = %INPUT_WIDTH
-TrainDataset.root_dir = '/scratch/dpadma2s/neuroscience_lab_data/final_split_patient_preprocessed/train/BraTS19_2013_0_1'
+TrainDataset.root_dir = '/scratch/dpadma2s/neuroscience_lab_data/final_split_patient_preprocessed/train_new/BraTS19_2013_0_1'
 TRAIN_DATASET = @TrainDataset()
 
 TestDataset.transform = @configure_transforms()
 TestDataset.input_height = %INPUT_HEIGHT
 TestDataset.input_width = %INPUT_WIDTH
-TestDataset.root_dir = '/scratch/dpadma2s/neuroscience_lab_data/final_split_patient_preprocessed/test/BraTS19_2013_11_1'
+TestDataset.root_dir = '/scratch/dpadma2s/neuroscience_lab_data/final_split_patient_preprocessed/test_new/BraTS19_2013_11_1'
 TEST_DATASET = @TestDataset()
 
 ValidDataset.transform = @configure_transforms()
 ValidDataset.input_height = %INPUT_HEIGHT
 ValidDataset.input_width = %INPUT_WIDTH
-ValidDataset.root_dir = '/scratch/dpadma2s/neuroscience_lab_data/final_split_patient_preprocessed/valid/BraTS19_2013_20_1'
+ValidDataset.root_dir = '/scratch/dpadma2s/neuroscience_lab_data/final_split_patient_preprocessed/valid_new/BraTS19_2013_20_1'
 VALID_DATASET = @ValidDataset()
 
 # Data loader configuration
