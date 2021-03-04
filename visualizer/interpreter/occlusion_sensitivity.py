@@ -28,9 +28,6 @@ class OcclusionSensitivity:
         self.forward_relu_outputs = []
         self.model.eval()
 
-        self.update_relus()
-        self.hook_layers()
-
     # def get_all_conv_layers(self, model):
     #     """
     #     Parameters:
