@@ -188,9 +188,9 @@ def occlusion_sensitivity(
     net.load_state_dict(state_test)
     occlusionSensitivity = OcclusionSensitivity(net)
 
-    test_loader_new = test_loader[1]
+    #test_loader_new = test_loader
 
-    for data in test_loader_new:
+    for data in test_loader:
         count = 0
         for image, label in zip(data["image"][idx], data["label"][idx]):
             count += 1
